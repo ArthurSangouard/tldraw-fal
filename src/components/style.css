@@ -1,8 +1,37 @@
 video {
+	position: relative;
 }
 .right {
 }
 
 .Cont {
 	display: flex;
+	align-items: flex-start;
+}
+.UI {
+	display: flex;
+	flex-direction: column;
+}
+
+button,
+input[type='text'],
+textarea {
+	padding: 0.5em;
+	font-size: 20px;
+
+	cursor: pointer;
+	margin: 0.5em;
+}
+button {
+	text-transform: uppercase;
+	width: 12em;
+}
+label,
+input[type='text'] {
+	padding: 0.5em;
+	font-size: 20px;
+}
+
+input[type='text'] {
+	padding: 0.5em;
 }

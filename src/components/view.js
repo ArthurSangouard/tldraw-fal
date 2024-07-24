@@ -1,10 +1,9 @@
-import { Test } from '@/hooks/useLiveImage2'
 import * as fal from '@fal-ai/serverless-client'
 import { useEffect, useRef, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import './style.css'
 import { useWebcam } from './webcam'
-async function updateDrawing({ fetchImage, imageUrl, prompt }) {
+async function updateDrawing({ fetchImage, imageUrl, prompt, seed, strength }) {
 	try {
 		// startedIteration += 1
 		// const iteration = startedIteration
@@ -18,8 +17,8 @@ async function updateDrawing({ fetchImage, imageUrl, prompt }) {
 			prompt,
 			image_url: imageUrl,
 			sync_mode: true,
-			strength: 0.65,
-			seed: 1, // Math.abs(random() * 10000), // TODO make this configurable in the UI
+			strength,
+			seed, // Math.abs(random() * 10000), // TODO make this configurable in the UI
 			enable_safety_checks: false,
 		})
 		return result
@@ -41,10 +40,12 @@ export function View({ appId }) {
 	const [count, setCount] = useState(0)
 	const [doDraw, setDoDraw] = useState(false)
 
-	const { stream, videoRef } = useWebcam()
+	const { stream, videoRef, dim } = useWebcam()
 	const [dataUrl, setDataUrl] = useState(null)
 	const canvasRef = useRef()
 	const canvasRef2 = useRef()
+	const seedRef = useRef()
+	const strengthRef = useRef()
 	const inputRef = useRef()
 
 	const captureFrame = () => {
@@ -133,10 +134,13 @@ export function View({ appId }) {
 	}, [appId])
 
 	const draw = async (_) => {
+		if (!fetchImage.current) return
 		const d = await updateDrawing({
 			fetchImage: fetchImage.current,
 			imageUrl: captureFrame(),
 			prompt: inputRef.current.value,
+			seed: seedRef.current.value,
+			strength: strengthRef.current.value / 100,
 		})
 		const c = canvasRef2.current
 		if (!d) return
@@ -147,17 +151,33 @@ export function View({ appId }) {
 		c.style.height = height
 		c.src = url
 	}
+	// useEffect(() => {
+	// 	console.log('DIM', dim)
+	// 	if (videoRef.current) {
+	// 		for (let key of ['width', 'height']) {
+	// 			const c = canvasRef2.current
+	// 			c[key] = dim[key]
+	// 			c.style[key] = dim[key] + 'px'
+	// 		}
+	// 	}
+	// }, [videoRef, dim])
 
+	const doDrawRef = useRef(doDraw)
+
+	useEffect(() => {
+		doDrawRef.current = doDraw
+	}, [doDraw])
 	useEffect(
 		(_) => {
 			let t
 			const frame = async (_) => {
-				console.log(doDraw)
+				const doDraw = doDrawRef.current
+
 				if (!doDraw) {
 					// console.log('no draw')
 					return (t = setTimeout(frame, 200))
 				}
-				console.log('drw')
+
 				await draw()
 				return (t = setTimeout(frame, 200))
 			}
@@ -170,15 +190,29 @@ export function View({ appId }) {
 	)
 
 	return (
-		<div>
-			<Test />
+		<div className="UI">
 			<canvas ref={canvasRef} style={{ position: 'absolute', right: '99999px' }}></canvas>
 			<img ref={canvasRef2}></img>
-			<input type="text" ref={inputRef}></input>
+			<textarea
+				type="text"
+				ref={inputRef}
+				defaultValue={'A robot sitting at a desk'}
+				rows={4}
+				cols={50}
+			></textarea>
+			<label>
+				Seed
+				<input type="range" ref={seedRef} min={0} max={1000} defaultValue={1}></input>
+			</label>
+			<label>
+				Strength
+				<input type="range" ref={strengthRef} min={10} max={100} defaultValue={60}></input>
+			</label>
 
-			<div>Seed: 1</div>
-			{fetchImage?.current && <button onClick={draw}>UPDATE</button>}
-			<button onClick={(_) => setDoDraw(!doDraw)}>{doDraw ? 'pause' : 'start'}</button>
+			{fetchImage?.current && <button onClick={draw}>TAKE SINGLE</button>}
+			{fetchImage?.current && (
+				<button onClick={(_) => setDoDraw(!doDraw)}>{doDraw ? 'pause' : 'start'}</button>
+			)}
 		</div>
 	)
 }

@@ -1,3 +1,5 @@
+/* eslint-disable */
+// @ts-nocheck
 import { LiveImageShape } from '@/components/LiveImageShapeUtil'
 import { useWebcam } from '@/components/webcam'
 import { blobToDataUri } from '@/utils/blob'
@@ -69,6 +71,10 @@ export function LiveImageProvider({
 			}
 		>()
 
+		// fal.config({
+		// 	credentials:
+		// 		'FAL_KEY_ID:d18ff7cc-54fe-4e0f-928c-272696178ecc:abf246371ff49ca9053af4c77ba9c3d9',
+		// })
 		const { send, close } = fal.realtime.connect(appId, {
 			connectionKey: 'fal-realtime-example',
 			clientOnly: false,

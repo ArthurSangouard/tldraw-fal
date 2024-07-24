@@ -1,3 +1,5 @@
+/* eslint-disable */
+// @ts-nocheck
 import { LiveImageShape } from '@/components/LiveImageShapeUtil'
 import { useWebcam } from '@/components/webcam'
 import { blobToDataUri } from '@/utils/blob'

@@ -7,6 +7,7 @@ export const useWebcam = () => useContext(WebcamContext)
 
 export const WebcamProvider = ({ children }) => {
 	const [stream, setStream] = useState(null)
+	const [dim, setDim] = useState({ width: 640, height: 480 })
 	const videoRef = useRef(null)
 
 	// Memoize the webcam stream
@@ -36,6 +37,10 @@ export const WebcamProvider = ({ children }) => {
 			if (mediaStream && videoRef.current) {
 				videoRef.current.srcObject = mediaStream
 				videoRef.current.play()
+				setDim({
+					width: videoRef.current.width,
+					height: videoRef.current.height,
+				})
 				console.log('got cam')
 			}
 		}
@@ -50,7 +55,7 @@ export const WebcamProvider = ({ children }) => {
 	}, [memoizedStream])
 
 	return (
-		<WebcamContext.Provider value={{ stream, videoRef }}>
+		<WebcamContext.Provider value={{ stream, videoRef, dim }}>
 			<div className="Cont">
 				<video ref={videoRef}></video>
 				<div className="right">
