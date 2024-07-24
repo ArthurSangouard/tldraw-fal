@@ -1,4 +1,5 @@
 import { LiveImageShape } from '@/components/LiveImageShapeUtil'
+import { useWebcam } from '@/components/webcam'
 import { blobToDataUri } from '@/utils/blob'
 import * as fal from '@fal-ai/serverless-client'
 import {
@@ -11,9 +12,8 @@ import {
 	rng,
 	useEditor,
 } from '@tldraw/tldraw'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { v4 as uuid } from 'uuid'
-
 type LiveImageResult = { url: string }
 type LiveImageRequest = {
 	prompt: string
@@ -39,6 +39,25 @@ export function LiveImageProvider({
 }) {
 	const [count, setCount] = useState(0)
 	const [fetchImage, setFetchImage] = useState<{ current: LiveImageContextType }>({ current: null })
+
+	const { stream, videoRef } = useWebcam()
+	const [dataUrl, setDataUrl] = useState(null)
+	const canvasRef = useRef()
+
+	const captureFrame = () => {
+		const canvas = canvasRef.current
+		console.log('ref', canvasRef, stream, videoRef)
+		if (!canvas || !videoRef) {
+			return console.log('missing')
+		}
+		canvas.width = videoRef.current.videoWidth
+		canvas.height = videoRef.current.videoHeight
+		const context = canvas.getContext('2d')
+		context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
+		const dataUrl = canvas.toDataURL('image/png')
+		// setDataUrl(dataUrl);
+		return dataUrl
+	}
 
 	useEffect(() => {
 		const requestsById = new Map<
@@ -73,7 +92,9 @@ export function LiveImageProvider({
 		setFetchImage({
 			current: (req) => {
 				return new Promise((resolve, reject) => {
+					console.log('FETCH REQ', req)
 					const id = uuid()
+
 					const timer = setTimeout(() => {
 						requestsById.delete(id)
 						reject(new Error('Timeout'))
@@ -89,6 +110,12 @@ export function LiveImageProvider({
 						},
 						timer,
 					})
+					const url = captureFrame()
+					if (url) {
+						req.image_url = url
+						console.log('can has URL')
+					}
+
 					send({ ...req, request_id: id })
 				})
 			},
@@ -107,7 +134,10 @@ export function LiveImageProvider({
 	}, [appId, count, throttleTime, timeoutTime])
 
 	return (
-		<LiveImageContext.Provider value={fetchImage.current}>{children}</LiveImageContext.Provider>
+		<LiveImageContext.Provider value={fetchImage.current}>
+			<canvas ref={canvasRef}></canvas>
+			<>{children}</>
+		</LiveImageContext.Provider>
 	)
 }
 
@@ -132,7 +162,8 @@ export function useLiveImage(
 
 			const hash = getHashForObject([...shapes])
 			const frameName = frame.props.name
-			if (hash === prevHash && frameName === prevPrompt) return
+			// HERE
+			//	if (hash === prevHash && frameName === prevPrompt) return
 
 			startedIteration += 1
 			const iteration = startedIteration
@@ -172,7 +203,7 @@ export function useLiveImage(
 
 				const prompt = frameName
 					? frameName + ' hd award-winning impressive'
-					: 'A random image that is safe for work and not surprising—something boring like a city or shoe watercolor'
+					: 'A robot with long hair inside a room sitting at his desk in a gaming chair'
 
 				const imageDataUri = await blobToDataUri(image)
 
@@ -188,7 +219,7 @@ export function useLiveImage(
 					image_url: imageDataUri,
 					sync_mode: true,
 					strength: 0.65,
-					seed: Math.abs(random() * 10000), // TODO make this configurable in the UI
+					seed: 1, // Math.abs(random() * 10000), // TODO make this configurable in the UI
 					enable_safety_checks: false,
 				})
 				// cancel if stale:
@@ -218,9 +249,15 @@ export function useLiveImage(
 			}, throttleTime)
 		}
 
+		const i = setInterval((_) => {
+			// requestUpdate()
+			updateDrawing()
+		}, 300)
+
 		editor.on('update-drawings' as any, requestUpdate)
 		return () => {
 			editor.off('update-drawings' as any, requestUpdate)
+			clearInterval(i)
 		}
 	}, [editor, fetchImage, shapeId, throttleTime])
 }

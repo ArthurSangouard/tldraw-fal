@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
-
 import { LiveImageShape, LiveImageShapeUtil } from '@/components/LiveImageShapeUtil'
 import { LiveImageTool, MakeLiveButton } from '@/components/LiveImageTool'
 import { LockupLink } from '@/components/LockupLink'
@@ -18,6 +17,7 @@ import {
 } from '@tldraw/tldraw'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { WebcamProvider } from '../components/webcam'
 
 fal.config({
 	requestMiddleware: fal.withProxy({
@@ -86,24 +86,26 @@ export default function Home() {
 	}
 
 	return (
-		<LiveImageProvider appId="110602490-lcm-sd15-i2i">
-			<main className="tldraw-wrapper">
-				<div className="tldraw-wrapper__inner">
-					<Tldraw
-						persistenceKey="tldraw-fal"
-						onMount={onEditorMount}
-						shapeUtils={shapeUtils}
-						tools={tools}
-						shareZone={<MakeLiveButton />}
-						overrides={overrides}
-					>
-						<SneakySideEffects />
-						<LockupLink />
-						<LiveImageAssets />
-					</Tldraw>
-				</div>
-			</main>
-		</LiveImageProvider>
+		<WebcamProvider>
+			<LiveImageProvider appId="110602490-lcm-sd15-i2i">
+				<main className="tldraw-wrapper">
+					<div className="tldraw-wrapper__inner">
+						<Tldraw
+							persistenceKey="tldraw-fal"
+							onMount={onEditorMount}
+							shapeUtils={shapeUtils}
+							tools={tools}
+							shareZone={<MakeLiveButton />}
+							overrides={overrides}
+						>
+							<SneakySideEffects />
+							<LockupLink />
+							<LiveImageAssets />
+						</Tldraw>
+					</div>
+				</main>
+			</LiveImageProvider>
+		</WebcamProvider>
 	)
 }
 
