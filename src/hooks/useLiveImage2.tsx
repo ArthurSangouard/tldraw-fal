@@ -24,8 +24,8 @@ type LiveImageRequest = {
 	enable_safety_checks: boolean
 }
 type LiveImageContextType = null | ((req: LiveImageRequest) => Promise<LiveImageResult>)
-const LiveImageContext = createContext<LiveImageContextType>(null)
-
+export const LiveImageContext = createContext<LiveImageContextType>(null)
+export const TestCtx = createContext(1)
 export function LiveImageProvider({
 	children,
 	appId,
@@ -89,6 +89,7 @@ export function LiveImageProvider({
 			},
 		})
 
+		console.log(' SET FETCH IMAGE')
 		setFetchImage({
 			current: (req) => {
 				return new Promise((resolve, reject) => {
@@ -143,7 +144,12 @@ export function LiveImageProvider({
 		</LiveImageContext.Provider>
 	)
 }
-
+export function Test() {
+	// const fetchImage = useContext(LiveImageContext)
+	// if (!fetchImage) throw new Error('Missing LiveImageProvider')
+	// console.log('TEST PSSED', fetchImage)
+	return <div></div>
+}
 export function useLiveImage(
 	shapeId: TLShapeId,
 	{ throttleTime = 64 }: { throttleTime?: number } = {}
@@ -264,6 +270,84 @@ export function useLiveImage(
 		}
 	}, [editor, fetchImage, shapeId, throttleTime])
 }
+// export function useLiveImage2(
+
+// ) {
+
+// 	const fetchImage = useContext(LiveImageContext)
+// 	if (!fetchImage) throw new Error('Missing LiveImageProvider')
+
+// 	useEffect(() => {
+// 		let prevHash = ''
+// 		let prevPrompt = ''
+
+// 		let startedIteration = 0
+// 		let finishedIteration = 0
+
+// 		async function updateDrawing() {
+// 			const shapes = getShapesTouching(shapeId, editor)
+// 			const frame = editor.getShape<LiveImageShape>(shapeId)!
+
+// 			const hash = getHashForObject([...shapes])
+// 			const frameName = frame.props.name
+// 			// HERE
+// 			//	if (hash === prevHash && frameName === prevPrompt) return
+
+// 			startedIteration += 1
+// 			const iteration = startedIteration
+
+// 			prevHash = hash
+// 			prevPrompt = frame.props.name
+
+// 			try {
+
+// 				const prompt = frameName
+// 					? frameName + ' hd award-winning impressive'
+// 					: 'A robot with long hair inside a room sitting at his desk in a gaming chair'
+
+// 				const result = await fetchImage!({
+// 					prompt,
+// 					image_url: imageDataUri,
+// 					sync_mode: true,
+// 					strength: 0.65,
+// 					seed: 1, // Math.abs(random() * 10000), // TODO make this configurable in the UI
+// 					enable_safety_checks: false,
+// 				})
+
+// 				updateImage(editor, frame.id, result.url)
+// 			} catch (e) {
+// 				const isTimeout = e instanceof Error && e.message === 'Timeout'
+// 				if (!isTimeout) {
+// 					console.error(e)
+// 				}
+
+// 				// retry if this was the most recent request:
+// 				if (iteration === startedIteration) {
+// 					requestUpdate()
+// 				}
+// 			}
+// 		}
+
+// 		let timer: ReturnType<typeof setTimeout> | null = null
+// 		function requestUpdate() {
+// 			if (timer !== null) return
+// 			timer = setTimeout(() => {
+// 				timer = null
+// 				updateDrawing()
+// 			}, throttleTime)
+// 		}
+
+// 		const i = setInterval((_) => {
+// 			// requestUpdate()
+// 			// updateDrawing()
+// 		}, 300)
+
+// 		return () => {
+
+// 			clearInterval(i)
+// 		}
+// 	}, [ fetchImage])
+// }
 
 function updateImage(editor: Editor, shapeId: TLShapeId, url: string | null) {
 	const shape = editor.getShape<LiveImageShape>(shapeId)!

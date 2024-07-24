@@ -3,7 +3,8 @@
 import { LiveImageShape, LiveImageShapeUtil } from '@/components/LiveImageShapeUtil'
 import { LiveImageTool, MakeLiveButton } from '@/components/LiveImageTool'
 import { LockupLink } from '@/components/LockupLink'
-import { LiveImageProvider } from '@/hooks/useLiveImage'
+import { View } from '@/components/view'
+import { LiveImageProvider } from '@/hooks/useLiveImage2'
 import * as fal from '@fal-ai/serverless-client'
 import {
 	AssetRecordType,
@@ -87,25 +88,31 @@ export default function Home() {
 
 	return (
 		<WebcamProvider>
-			<LiveImageProvider appId="110602490-lcm-sd15-i2i">
-				<main className="tldraw-wrapper">
-					<div className="tldraw-wrapper__inner">
-						<Tldraw
-							persistenceKey="tldraw-fal"
-							onMount={onEditorMount}
-							shapeUtils={shapeUtils}
-							tools={tools}
-							shareZone={<MakeLiveButton />}
-							overrides={overrides}
-						>
-							<SneakySideEffects />
-							<LockupLink />
-							<LiveImageAssets />
-						</Tldraw>
-					</div>
-				</main>
-			</LiveImageProvider>
+			{/* <LiveImageProvider appId="110602490-lcm-sd15-i2i"> */}
+			<View appId="110602490-lcm-sd15-i2i" />
+			{/* </LiveImageProvider> */}
 		</WebcamProvider>
+	)
+}
+function foo() {
+	return (
+		<LiveImageProvider appId="110602490-lcm-sd15-i2i">
+			<main className="tldraw-wrapper">
+				<div className="tldraw-wrapper__inner">
+					<Tldraw
+						persistenceKey="tldraw-fal"
+						shapeUtils={shapeUtils}
+						tools={tools}
+						shareZone={<MakeLiveButton />}
+						overrides={overrides}
+					>
+						<SneakySideEffects />
+						<LockupLink />
+						<LiveImageAssets />
+					</Tldraw>
+				</div>
+			</main>
+		</LiveImageProvider>
 	)
 }
 

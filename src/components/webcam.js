@@ -51,16 +51,12 @@ export const WebcamProvider = ({ children }) => {
 
 	return (
 		<WebcamContext.Provider value={{ stream, videoRef }}>
-			<video
-				ref={videoRef}
-				style={{
-					position: 'fixed',
-					top: '50px',
-					left: '50px',
-					zIndex: 99999999,
-				}}
-			></video>
-			<>{children}</>
+			<div className="Cont">
+				<video ref={videoRef}></video>
+				<div className="right">
+					<>{children}</>
+				</div>
+			</div>
 		</WebcamContext.Provider>
 	)
 }
