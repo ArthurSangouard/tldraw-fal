@@ -40,17 +40,22 @@ export function View({ appId }) {
 	const [count, setCount] = useState(0)
 	const [doDraw, setDoDraw] = useState(false)
 
+	const [src, setSrc] = useState('cam')
+
 	const { stream, videoRef, dim } = useWebcam()
 	const [dataUrl, setDataUrl] = useState(null)
 	const canvasRef = useRef()
 	const canvasRef2 = useRef()
+	const canvasRef3 = useRef()
 	const seedRef = useRef()
 	const strengthRef = useRef()
 	const inputRef = useRef()
+	const iframeRef = useRef()
+	const imgRef = useRef()
 
 	const captureFrame = () => {
 		const canvas = canvasRef.current
-		console.log('ref', canvasRef, stream, videoRef)
+		console.log('Capture frane')
 		if (!canvas || !videoRef) {
 			return console.log('missing')
 		}
@@ -110,8 +115,9 @@ export function View({ appId }) {
 						},
 						timer,
 					})
-					const url = captureFrame()
-					if (url) {
+					//
+					if (typeof req.image_url !== 'string') {
+						const url = captureFrame()
 						req.image_url = url
 						console.log('can has URL')
 					}
@@ -133,11 +139,12 @@ export function View({ appId }) {
 		}
 	}, [appId])
 
-	const draw = async (_) => {
+	const draw = async (imageUrl) => {
 		if (!fetchImage.current) return
+		console.log('DRAW', !!imageUrl)
 		const d = await updateDrawing({
 			fetchImage: fetchImage.current,
-			imageUrl: captureFrame(),
+			imageUrl: imageUrl || captureFrame(),
 			prompt: inputRef.current.value,
 			seed: seedRef.current.value,
 			strength: strengthRef.current.value / 100,
@@ -163,6 +170,7 @@ export function View({ appId }) {
 	// }, [videoRef, dim])
 
 	const doDrawRef = useRef(doDraw)
+	const waitingForIframe = useRef(false)
 
 	useEffect(() => {
 		doDrawRef.current = doDraw
@@ -178,7 +186,13 @@ export function View({ appId }) {
 					return (t = setTimeout(frame, 200))
 				}
 
-				await draw()
+				if (src === 'cam') {
+					await draw()
+				} else if (!waitingForIframe.current) {
+					iframeRef.current.contentWindow.postMessage({ type: 'screenshot' }, '*')
+					waitingForIframe.current = true
+				}
+				//
 				return (t = setTimeout(frame, 200))
 			}
 			t = frame()
@@ -189,30 +203,106 @@ export function View({ appId }) {
 		[doDraw]
 	)
 
-	return (
-		<div className="UI">
-			<canvas ref={canvasRef} style={{ position: 'absolute', right: '99999px' }}></canvas>
-			<img ref={canvasRef2}></img>
-			<textarea
-				type="text"
-				ref={inputRef}
-				defaultValue={'A robot sitting at a desk'}
-				rows={4}
-				cols={50}
-			></textarea>
-			<label>
-				Seed
-				<input type="range" ref={seedRef} min={0} max={1000} defaultValue={1}></input>
-			</label>
-			<label>
-				Strength
-				<input type="range" ref={strengthRef} min={10} max={100} defaultValue={60}></input>
-			</label>
+	useEffect(() => {
+		function renderImage(canvas, blob) {
+			const ctx = canvas.getContext('2d')
+			const img = new Image()
+			img.onload = (event) => {
+				URL.revokeObjectURL(event.target.src) // 👈 This is important. If you are not using the blob, you should release it if you don't want to reuse it. It's good for memory.
+				ctx.drawImage(event.target, 0, 0)
+				const url = canvas.toDataURL()
+				// imgRef.current.src = url
+				waitingForIframe.current = false
+				draw(url)
+			}
+			img.src = URL.createObjectURL(blob)
+		}
+		const onWindowMessage = (e) => {
+			if (e.data && e.data.type === 'screenshot') {
+				// alert('YEA')
+				const blob = e.data.data
+				renderImage(canvasRef3.current, blob)
+			}
+		}
+		window.addEventListener('message', onWindowMessage)
+		return (_) => {
+			window.removeEventListener('message', onWindowMessage)
+		}
+	})
+	useEffect(() => {
+		const params = new URLSearchParams(window.location.search)
+		const assetId = params.get('assetId')
+		if (assetId) iframeRef.current.src = 'https://webremixer.com/view/?assetId=' + assetId
+	})
 
-			{fetchImage?.current && <button onClick={draw}>TAKE SINGLE</button>}
-			{fetchImage?.current && (
-				<button onClick={(_) => setDoDraw(!doDraw)}>{doDraw ? 'pause' : 'start'}</button>
-			)}
-		</div>
+	return (
+		<>
+			<div className="UI" style={{ maxHeight: '100vh', overflow: 'auto' }}>
+				<canvas ref={canvasRef} style={{ position: 'absolute', right: '99999px' }}></canvas>
+				<div style={{ display: 'flex', width: 'fit-content' }}>
+					<iframe
+						src="https://webremixer.com/view/?assetId=667450ed31837dfe64e6899d"
+						ref={iframeRef}
+						width={'512px'}
+						height={'512px'}
+					></iframe>
+					<canvas
+						ref={canvasRef3}
+						width={'512px'}
+						height={'512px'}
+						style={{ width: '512px', height: '512px' }}
+					></canvas>
+					<img ref={imgRef}></img>
+				</div>
+
+				<img ref={canvasRef2} style={{ position: 'absolute', top: '512px' }}></img>
+			</div>
+			<div className="Controls">
+				<textarea
+					type="text"
+					ref={inputRef}
+					defaultValue={'A robot sitting at a desk'}
+					rows={4}
+					cols={50}
+				></textarea>
+				<label>
+					Seed
+					<input type="range" ref={seedRef} min={0} max={1000} defaultValue={1}></input>
+				</label>
+				<label>
+					Strength
+					<input type="range" ref={strengthRef} min={10} max={100} defaultValue={60}></input>
+				</label>
+
+				<div style={{ display: 'flex' }}>
+					{fetchImage?.current && (
+						<button
+							onClick={(_) => {
+								if (src === 'cam') draw()
+								else iframeRef.current.contentWindow.postMessage({ type: 'screenshot' }, '*')
+							}}
+						>
+							TAKE SINGLE
+						</button>
+					)}
+					{fetchImage?.current && (
+						<button onClick={(_) => setDoDraw(!doDraw)}>{doDraw ? 'pause' : 'start'}</button>
+					)}
+					{/* <button onClick={(_) => {}}>COMP</button> */}
+					<div>
+						<label onClick={(_) => setSrc('cam')}>
+							{' '}
+							Webcam
+							<input type="radio" name="type" value="cam" checked={src === 'cam'}></input>
+						</label>
+						<label onClick={(_) => setSrc('comp')}>
+							{' '}
+							Comp
+							<input type="radio" name="type" value="comp" checked={src === 'comp'}></input>
+						</label>
+					</div>
+				</div>
+			</div>
+		</>
 	)
 }

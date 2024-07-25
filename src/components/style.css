@@ -5,12 +5,26 @@ video {
 }
 
 .Cont {
-	display: flex;
+	display: grid;
+	grid-template-rows: 1fr 1fr;
 	align-items: flex-start;
+	flex-wrap: wrap;
 }
-.UI {
+
+.Controls {
 	display: flex;
 	flex-direction: column;
+}
+video {
+	grid-column-start: 1;
+}
+.UI {
+	grid-column-start: 2;
+	display: flex;
+	flex-direction: column;
+}
+.Controls {
+	grid-column-start: 1;
 }
 
 button,
@@ -34,4 +48,10 @@ input[type='text'] {
 
 input[type='text'] {
 	padding: 0.5em;
+}
+
+iframe {
+	border: none;
+	width: 512px;
+	height: 512px;
 }
